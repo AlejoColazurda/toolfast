@@ -206,6 +206,23 @@ def pdf_unificar():
         presionar_enter()
         return
         
+    # Pre-comprobación de encriptación
+    encriptados = []
+    for pdf in pdfs:
+        try:
+            reader = pypdf.PdfReader(pdf)
+            if reader.is_encrypted:
+                encriptados.append(os.path.basename(pdf))
+        except Exception:
+            pass
+    if encriptados:
+        print(f"\n{C_RED}Error: Se encontraron PDFs protegidos o encriptados:{C_END}")
+        for enc in encriptados:
+            print(f" - {enc}")
+        print("Desbloquéalos antes de intentar unificarlos.")
+        presionar_enter()
+        return
+        
     print(f"{C_YELLOW}Unificando...{C_END}")
     try:
         merger = pypdf.PdfMerger()
@@ -233,6 +250,11 @@ def pdf_separar():
     
     try:
         reader = pypdf.PdfReader(archivo)
+        if reader.is_encrypted:
+            print(f"{C_RED}Error: El PDF está protegido con contraseña. Desbloquéalo antes de procesarlo.{C_END}")
+            presionar_enter()
+            return
+            
         total_paginas = len(reader.pages)
         print(f"Páginas detectadas en el documento: {total_paginas}")
         
@@ -253,17 +275,26 @@ def pdf_separar():
             
         elif subop == "2":
             rango = input("Ingresa las páginas o rangos (ej: '1-3, 5' para páginas 1, 2, 3 y 5): ").strip()
-            # Procesar el rango
             paginas_a_extraer = set()
-            partes = rango.split(",")
-            for parte in partes:
-                parte = parte.strip()
-                if "-" in parte:
-                    inicio, fin = map(int, parte.split("-"))
-                    for p in range(inicio, fin + 1):
-                        paginas_a_extraer.add(p - 1) # Convertir a 0-index
-                else:
-                    paginas_a_extraer.add(int(parte) - 1)
+            try:
+                partes = rango.split(",")
+                for parte in partes:
+                    parte = parte.strip()
+                    if not parte:
+                        continue
+                    if "-" in parte:
+                        subpartes = parte.split("-")
+                        if len(subpartes) != 2:
+                            raise ValueError()
+                        inicio, fin = map(int, subpartes)
+                        for p in range(inicio, fin + 1):
+                            paginas_a_extraer.add(p - 1)
+                    else:
+                        paginas_a_extraer.add(int(parte) - 1)
+            except ValueError:
+                print(f"{C_RED}Error: El formato de rango no es válido. Usa números separados por comas o guiones (ej: 1-3, 5).{C_END}")
+                presionar_enter()
+                return
             
             # Validar e insertar
             writer = pypdf.PdfWriter()
@@ -298,6 +329,10 @@ def pdf_comprimir():
     print(f"{C_YELLOW}Comprimiendo flujos de contenido y removiendo metadatos redundantes...{C_END}")
     try:
         reader = pypdf.PdfReader(archivo)
+        if reader.is_encrypted:
+            print(f"{C_RED}Error: El PDF está protegido con contraseña. Desbloquéalo antes de comprimirlo.{C_END}")
+            presionar_enter()
+            return
         writer = pypdf.PdfWriter()
         
         for page in reader.pages:
@@ -332,6 +367,10 @@ def pdf_extraer_texto():
     print(f"{C_YELLOW}Extrayendo texto del PDF...{C_END}")
     try:
         reader = pypdf.PdfReader(archivo)
+        if reader.is_encrypted:
+            print(f"{C_RED}Error: El PDF está protegido con contraseña. Desbloquéalo antes de extraer su texto.{C_END}")
+            presionar_enter()
+            return
         texto = []
         for idx, page in enumerate(reader.pages, 1):
             t_page = page.extract_text()
@@ -389,6 +428,8 @@ def realizar_conversion(ruta_orig, ext_orig, ext_dest):
                 img = img.convert("RGB")
             img.save(salida)
             print(f"{C_GREEN}¡Éxito! Imagen convertida en: {salida}{C_END}")
+        except PermissionError:
+            print(f"{C_RED}Error de acceso: El archivo o la carpeta de destino están bloqueados o no tienes permisos de escritura.{C_END}")
         except Exception as e:
             print(f"{C_RED}Error al convertir imagen: {e}{C_END}")
         presionar_enter()
@@ -404,6 +445,8 @@ def realizar_conversion(ruta_orig, ext_orig, ext_dest):
                 img = img.convert("RGB")
             img.save(salida, "PDF", resolution=100.0)
             print(f"{C_GREEN}¡Éxito! PDF de imagen creado en: {salida}{C_END}")
+        except PermissionError:
+            print(f"{C_RED}Error de acceso: El archivo o la carpeta de destino están bloqueados o no tienes permisos de escritura.{C_END}")
         except Exception as e:
             print(f"{C_RED}Error al convertir imagen a PDF: {e}{C_END}")
         presionar_enter()
@@ -434,6 +477,9 @@ def realizar_conversion(ruta_orig, ext_orig, ext_dest):
                     
             wb.save(salida)
             print(f"{C_GREEN}¡Excel generado con éxito en: {salida}{C_END}")
+        except PermissionError:
+            print(f"{C_RED}Error de acceso: El archivo de destino está abierto en otro programa (como Excel) o está bloqueado.{C_END}")
+            print(f"{C_YELLOW}Por favor, cierra Excel o el archivo bloqueado e inténtalo de nuevo.{C_END}")
         except Exception as e:
             print(f"{C_RED}Error al convertir CSV a Excel: {e}{C_END}")
         presionar_enter()
@@ -459,6 +505,9 @@ def realizar_conversion(ruta_orig, ext_orig, ext_dest):
                     if any(x is not None for x in r):
                         writer.writerow(r)
             print(f"{C_GREEN}¡CSV generado con éxito en: {salida}{C_END}")
+        except PermissionError:
+            print(f"{C_RED}Error de acceso: El archivo de destino está abierto en otro programa (como Excel) o está bloqueado.{C_END}")
+            print(f"{C_YELLOW}Por favor, cierra Excel o el archivo bloqueado e inténtalo de nuevo.{C_END}")
         except Exception as e:
             print(f"{C_RED}Error al convertir Excel a CSV: {e}{C_END}")
         presionar_enter()
