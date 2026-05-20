@@ -5,6 +5,7 @@ import subprocess
 import re
 import shutil
 import urllib.request
+import threading
 from glob import glob
 
 # =====================================================================
@@ -12,6 +13,7 @@ from glob import glob
 # =====================================================================
 VERSION = "1.0.0"
 GITHUB_RAW_URL = "https://raw.githubusercontent.com/AlejoColazurda/toolfast/main/toolfast.py"
+VERSION_REMOTA_DISPONIBLE = None
 # =====================================================================
 
 # Habilitar soporte de colores ANSI en la terminal de Windows
@@ -73,6 +75,23 @@ def parse_version(v_str):
     except Exception:
         return (0, 0, 0)
 
+def verificar_actualizacion_segundo_plano():
+    global VERSION_REMOTA_DISPONIBLE
+    try:
+        req = urllib.request.Request(
+            GITHUB_RAW_URL, 
+            headers={'User-Agent': 'Mozilla/5.0'}
+        )
+        with urllib.request.urlopen(req, timeout=3) as response:
+            codigo_remoto = response.read().decode('utf-8')
+        match = re.search(r'VERSION\s*=\s*["\']([^"\']+)["\']', codigo_remoto)
+        if match:
+            version_remota = match.group(1)
+            if parse_version(version_remota) > parse_version(VERSION):
+                VERSION_REMOTA_DISPONIBLE = version_remota
+    except Exception:
+        pass
+
 def comprobar_actualizaciones(silencioso=False):
     if not silencioso:
         print(f"\n{C_YELLOW}Buscando actualizaciones en GitHub...{C_END}")
@@ -113,6 +132,13 @@ def print_header(title=""):
     print(f"               TOOLFAST - NAVAJA SUIZA CLI v{VERSION}         ")
     print(f"                  Desarrollado por Alejo Colazurda           ")
     print("="*60 + f"{C_END}")
+    
+    global VERSION_REMOTA_DISPONIBLE
+    if VERSION_REMOTA_DISPONIBLE:
+        print(f"{C_YELLOW}{C_BOLD}[!] ¡NUEVA ACTUALIZACIÓN DISPONIBLE! (v{VERSION_REMOTA_DISPONIBLE}){C_END}")
+        print(f"{C_YELLOW}    Selecciona la opción 5 en el menú principal para actualizar ahora.{C_END}")
+        print(f"{C_YELLOW}" + "-"*60 + f"{C_END}")
+        
     if title:
         print(f"{C_BOLD}--- {title} ---{C_END}\n")
 
@@ -697,9 +723,11 @@ def explorar_carpeta():
 # MENÚ PRINCIPAL
 # =====================================================================
 def main():
-    # Comprobación de actualizaciones en segundo plano al arrancar
+    # Iniciar comprobacion de actualizaciones en segundo plano de forma no bloqueante
     try:
-        comprobar_actualizaciones(silencioso=True)
+        t = threading.Thread(target=verificar_actualizacion_segundo_plano)
+        t.daemon = True
+        t.start()
     except Exception:
         pass
 
