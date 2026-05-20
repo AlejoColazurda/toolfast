@@ -591,8 +591,11 @@ def archivos_organizar_carpeta():
             items = os.listdir(ruta)
         except Exception as e:
             print(f"{C_RED}Error al acceder a la carpeta: {e}{C_END}")
-            presionar_enter()
-            return
+            print(f"{C_YELLOW}Regresando al directorio padre...{C_END}")
+            import time
+            time.sleep(2)
+            ruta = os.path.dirname(ruta)
+            continue
             
         directorios = []
         archivos = []
@@ -733,8 +736,11 @@ def explorar_carpeta():
             items = os.listdir(ruta)
         except Exception as e:
             print(f"{C_RED}Error al acceder a la carpeta: {e}{C_END}")
-            presionar_enter()
-            return
+            print(f"{C_YELLOW}Regresando al directorio padre...{C_END}")
+            import time
+            time.sleep(2)
+            ruta = os.path.dirname(ruta)
+            continue
             
         directorios = []
         archivos = []
