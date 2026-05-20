@@ -151,6 +151,83 @@ def print_header(title=""):
 def presionar_enter():
     input(f"\nPresiona {C_BOLD}Enter{C_END} para volver...")
 
+def seleccionar_archivo_interactivo(extensiones, mensaje):
+    """
+    Permite al usuario ingresar una ruta completa de archivo o palabras clave.
+    Busca coincidencias recursivamente (max 2 niveles) en la carpeta actual y Descargas,
+    mostrando resultados numerados para fácil selección.
+    """
+    while True:
+        entrada = input(mensaje).strip().strip('"')
+        
+        # Si es un archivo válido directo
+        if entrada and os.path.isfile(entrada):
+            ext = os.path.splitext(entrada)[1].lower()
+            if ext in extensiones:
+                return os.path.abspath(entrada)
+            else:
+                print(f"{C_RED}El archivo seleccionado no tiene una extensión válida ({', '.join(extensiones)}).{C_END}")
+                continue
+                
+        # Buscar coincidencias en la carpeta actual y en Descargas
+        carpetas_busqueda = [os.getcwd()]
+        user_profile = os.environ.get("USERPROFILE")
+        if user_profile:
+            downloads_dir = os.path.join(user_profile, "Downloads")
+            if os.path.exists(downloads_dir) and downloads_dir not in carpetas_busqueda:
+                carpetas_busqueda.append(downloads_dir)
+                
+        coincidencias = []
+        palabras = entrada.lower().split()
+        
+        for carpeta in carpetas_busqueda:
+            try:
+                for root, dirs, files in os.walk(carpeta):
+                    # No ir más profundo de 2 niveles para que la búsqueda sea rápida
+                    depth = root[len(carpeta):].count(os.sep)
+                    if depth > 2:
+                        continue
+                        
+                    for f in files:
+                        ext_f = os.path.splitext(f)[1].lower()
+                        if ext_f in extensiones:
+                            # Comprobar si contiene las palabras clave
+                            if all(p in f.lower() for p in palabras):
+                                coincidencia_path = os.path.join(root, f)
+                                if coincidencia_path not in coincidencias:
+                                    coincidencias.append(coincidencia_path)
+            except Exception:
+                pass
+                
+        # Limitar resultados
+        coincidencias = coincidencias[:15]
+        
+        if not coincidencias:
+            print(f"{C_RED}No se encontró ningún archivo con esas palabras clave o extensión en esta carpeta ni en Descargas.{C_END}")
+            print(f"Extensiones aceptadas: {', '.join(extensiones)}")
+            reintentar = input("¿Deseas buscar de nuevo? (S/N, por defecto S): ").strip().upper()
+            if reintentar in ("N", "NO"):
+                return None
+            continue
+            
+        print(f"\n{C_CYAN}--- Archivos encontrados ({len(coincidencias)}) ---{C_END}")
+        for idx, coinc in enumerate(coincidencias, 1):
+            base = os.path.basename(coinc)
+            dir_name = os.path.basename(os.path.dirname(coinc))
+            print(f"  {C_GREEN}{idx}.{C_END} ...\\{dir_name}\\{base}")
+            
+        print(f"  {C_RED}0.{C_END} Cancelar selección")
+        
+        seleccion = input(f"\nSelecciona el número de archivo (1-{len(coincidencias)}): ").strip()
+        if seleccion == "0":
+            return None
+        if seleccion.isdigit() and 1 <= int(seleccion) <= len(coincidencias):
+            return coincidencias[int(seleccion) - 1]
+        else:
+            print(f"{C_RED}Selección no válida.{C_END}")
+            import time
+            time.sleep(1.5)
+
 # =====================================================================
 # SECCIÓN 1: GESTIÓN DE PDFS
 # =====================================================================
@@ -243,10 +320,8 @@ def pdf_unificar():
 
 def pdf_separar():
     print_header("SEPARAR O EXTRAER PÁGINAS")
-    archivo = input("Ruta del archivo PDF origen: ").strip().strip('"')
-    if not os.path.isfile(archivo) or not archivo.lower().endswith(".pdf"):
-        print(f"{C_RED}Archivo PDF no válido.{C_END}")
-        presionar_enter()
+    archivo = seleccionar_archivo_interactivo([".pdf"], "Escribe parte del nombre del PDF a separar (o la ruta completa): ")
+    if not archivo:
         return
         
     print("\n¿Qué deseas hacer?")
@@ -325,10 +400,8 @@ def pdf_separar():
 
 def pdf_comprimir():
     print_header("COMPRIMIR PDF")
-    archivo = input("Ruta del archivo PDF a comprimir: ").strip().strip('"')
-    if not os.path.isfile(archivo) or not archivo.lower().endswith(".pdf"):
-        print(f"{C_RED}Archivo PDF no válido.{C_END}")
-        presionar_enter()
+    archivo = seleccionar_archivo_interactivo([".pdf"], "Escribe parte del nombre del PDF a comprimir (o la ruta completa): ")
+    if not archivo:
         return
         
     salida = os.path.join(os.path.dirname(archivo), "comprimido_" + os.path.basename(archivo))
@@ -363,10 +436,8 @@ def pdf_comprimir():
 
 def pdf_extraer_texto():
     print_header("EXTRACTOR DE TEXTO / OCR")
-    archivo = input("Ruta del archivo PDF: ").strip().strip('"')
-    if not os.path.isfile(archivo) or not archivo.lower().endswith(".pdf"):
-        print(f"{C_RED}Archivo PDF no válido.{C_END}")
-        presionar_enter()
+    archivo = seleccionar_archivo_interactivo([".pdf"], "Escribe parte del nombre del PDF a extraer (o la ruta completa): ")
+    if not archivo:
         return
         
     salida = os.path.join(os.path.dirname(archivo), os.path.splitext(os.path.basename(archivo))[0] + "_texto.txt")
@@ -400,10 +471,9 @@ def pdf_extraer_texto():
 # =====================================================================
 def conversor_formatos():
     print_header("CONVERSOR DE FORMATOS DE ARCHIVO")
-    origen = input("Ruta del archivo a convertir: ").strip().strip('"')
-    if not os.path.isfile(origen):
-        print(f"{C_RED}El archivo especificado no existe.{C_END}")
-        presionar_enter()
+    extensiones_validas = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".csv", ".xlsx"]
+    origen = seleccionar_archivo_interactivo(extensiones_validas, "Escribe parte del nombre del archivo a convertir (o la ruta completa): ")
+    if not origen:
         return
         
     ext_orig = os.path.splitext(origen)[1].lower().replace(".", "")
