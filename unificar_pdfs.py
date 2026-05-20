@@ -107,6 +107,7 @@ def comprobar_actualizaciones(silencioso=False):
 def print_header():
     print(f"\n{C_CYAN}{C_BOLD}" + "="*60)
     print(f"        UNIFICADOR DE ARCHIVOS PDF - v{VERSION}         ")
+    print(f"            Desarrollado por: Alejo Colazurda           ")
     print("="*60 + f"{C_END}")
 
 def unificar_carpeta():

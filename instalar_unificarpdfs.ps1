@@ -34,7 +34,6 @@ if (Test-Path $sourceScript) {
     Write-Host "No se encontró el script localmente. Descargando última versión desde GitHub..." -ForegroundColor Cyan
     $rawUrl = "https://raw.githubusercontent.com/AlejoColazurda/toolfast/main/unificar_pdfs.py"
     try {
-        # Habilitar TLS 1.2 para conexiones seguras
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
         Invoke-WebRequest -Uri $rawUrl -OutFile $destScript -UseBasicParsing
         Write-Host "Script unificador de PDFs descargado correctamente desde GitHub." -ForegroundColor Green
@@ -74,5 +73,16 @@ python "$destScript" `$args
 Set-Content -Path $cmdFile -Value $cmdContent -Force
 Set-Content -Path $ps1File -Value $ps1Content -Force
 
-Write-Host "`n¡Instalación completada con éxito!" -ForegroundColor Green
-Write-Host "Tus compañeros ahora pueden abrir cualquier consola y ejecutar: unificarpdfs" -ForegroundColor Cyan
+# Notificación final amigable
+Write-Host "`n============================================================" -ForegroundColor Cyan
+Write-Host "       ¡INSTALACIÓN COMPLETADA CON ÉXITO! (v1.0.0)" -ForegroundColor Green
+Write-Host "       Desarrollado por: Alejo Colazurda" -ForegroundColor Yellow
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Para comenzar a usar la herramienta:" -ForegroundColor White
+Write-Host "1. Abre una NUEVA ventana de Símbolo del Sistema (cmd) o PowerShell." -ForegroundColor Yellow
+Write-Host "   (Esto es obligatorio para que el sistema reconozca el nuevo comando)." -ForegroundColor Gray
+Write-Host "2. Escribe el comando para iniciar el programa:" -ForegroundColor White
+Write-Host "   -->   unificarpdfs   <--" -ForegroundColor Green
+Write-Host "3. Presiona Enter y ¡listo!" -ForegroundColor White
+Write-Host "============================================================" -ForegroundColor Cyan
