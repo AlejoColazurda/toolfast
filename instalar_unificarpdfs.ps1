@@ -73,16 +73,16 @@ python "$destScript" `$args
 Set-Content -Path $cmdFile -Value $cmdContent -Force
 Set-Content -Path $ps1File -Value $ps1Content -Force
 
-# Notificación final amigable
+# Notificacion final amigable
 Write-Host "`n============================================================" -ForegroundColor Cyan
-Write-Host "       ¡INSTALACIÓN COMPLETADA CON ÉXITO! (v1.0.0)" -ForegroundColor Green
+Write-Host "       INSTALACION COMPLETADA CON EXITO! (v1.0.0)" -ForegroundColor Green
 Write-Host "       Desarrollado por: Alejo Colazurda" -ForegroundColor Yellow
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Para comenzar a usar la herramienta:" -ForegroundColor White
-Write-Host "1. Abre una NUEVA ventana de Símbolo del Sistema (cmd) o PowerShell." -ForegroundColor Yellow
+Write-Host "1. Abre una NUEVA ventana de Simbolo del Sistema (cmd) o PowerShell." -ForegroundColor Yellow
 Write-Host "   (Esto es obligatorio para que el sistema reconozca el nuevo comando)." -ForegroundColor Gray
 Write-Host "2. Escribe el comando para iniciar el programa:" -ForegroundColor White
-Write-Host "   -->   unificarpdfs   <--" -ForegroundColor Green
-Write-Host "3. Presiona Enter y ¡listo!" -ForegroundColor White
+Write-Host "   ***   unificarpdfs   ***" -ForegroundColor Green
+Write-Host "3. Presiona Enter y listo!" -ForegroundColor White
 Write-Host "============================================================" -ForegroundColor Cyan
