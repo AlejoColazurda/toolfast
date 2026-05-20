@@ -1,0 +1,69 @@
+# PowerShell Script para instalar 'unificarpdfs' en la máquina de tus compañeros.
+# Este script instalará la librería de PDF necesaria y creará los accesos directos para la consola.
+
+$ErrorActionPreference = "Stop"
+
+Write-Host "=== INSTALADOR DE UNIFICARPDFS (toolfast) ===" -ForegroundColor Cyan
+
+# 1. Comprobar si Python está instalado
+try {
+    $pythonVersion = python --version 2>&1
+    Write-Host "Python detectado: $pythonVersion" -ForegroundColor Green
+} catch {
+    Write-Host "Error: Python no está instalado o no se encuentra en el PATH del sistema." -ForegroundColor Red
+    Write-Host "Por favor, descarga e instala Python desde https://www.python.org/ y vuelve a intentarlo." -ForegroundColor Yellow
+    Exit
+}
+
+# 2. Crear carpeta de destino para el script de Python en el directorio de usuario
+$userHome = [System.Environment]::GetFolderPath("UserProfile")
+$installDir = Join-Path $userHome ".unificarpdfs"
+if (-not (Test-Path $installDir)) {
+    New-Item -ItemType Directory -Path $installDir | Out-Null
+    Write-Host "Creada carpeta de instalación en: $installDir" -ForegroundColor Gray
+}
+
+# 3. Descargar/Copiar el script principal (unificar_pdfs.py)
+$sourceScript = Join-Path $PSScriptRoot "unificar_pdfs.py"
+$destScript = Join-Path $installDir "unificar_pdfs.py"
+
+if (Test-Path $sourceScript) {
+    Copy-Item -Path $sourceScript -Destination $destScript -Force
+    Write-Host "Archivo principal copiado con éxito." -ForegroundColor Green
+} else {
+    Write-Host "Por favor, asegúrate de colocar el archivo 'unificar_pdfs.py' en la misma carpeta que este instalador." -ForegroundColor Yellow
+    Exit
+}
+
+# 4. Instalar pypdf
+Write-Host "Instalando librería de manipulación de PDFs (pypdf)..." -ForegroundColor Cyan
+& python -m pip install pypdf
+
+# 5. Crear accesos directos en la carpeta NPM del usuario
+$appData = [System.Environment]::GetFolderPath("ApplicationData")
+$npmDir = Join-Path $appData "npm"
+
+if (-not (Test-Path $npmDir)) {
+    New-Item -ItemType Directory -Path $npmDir | Out-Null
+}
+
+$cmdFile = Join-Path $npmDir "unificarpdfs.cmd"
+$ps1File = Join-Path $npmDir "unificarpdfs.ps1"
+
+# Contenido para CMD
+$cmdContent = @"
+@echo off
+python "$destScript" %*
+"@
+
+# Contenido para PowerShell
+$ps1Content = @"
+python "$destScript" `$args
+"@
+
+# Escribir los wrappers
+Set-Content -Path $cmdFile -Value $cmdContent -Force
+Set-Content -Path $ps1File -Value $ps1Content -Force
+
+Write-Host "`n¡Instalación completada con éxito!" -ForegroundColor Green
+Write-Host "Tus compañeros ahora pueden abrir cualquier consola y ejecutar: unificarpdfs" -ForegroundColor Cyan
