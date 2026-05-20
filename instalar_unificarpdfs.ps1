@@ -29,14 +29,23 @@ $destScript = Join-Path $installDir "unificar_pdfs.py"
 
 if (Test-Path $sourceScript) {
     Copy-Item -Path $sourceScript -Destination $destScript -Force
-    Write-Host "Archivo principal copiado con éxito." -ForegroundColor Green
+    Write-Host "Archivo principal copiado localmente con éxito." -ForegroundColor Green
 } else {
-    Write-Host "Por favor, asegúrate de colocar el archivo 'unificar_pdfs.py' en la misma carpeta que este instalador." -ForegroundColor Yellow
-    Exit
+    Write-Host "No se encontró el script localmente. Descargando última versión desde GitHub..." -ForegroundColor Cyan
+    $rawUrl = "https://raw.githubusercontent.com/AlejoColazurda/toolfast/main/unificar_pdfs.py"
+    try {
+        # Habilitar TLS 1.2 para conexiones seguras
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri $rawUrl -OutFile $destScript -UseBasicParsing
+        Write-Host "Script unificador de PDFs descargado correctamente desde GitHub." -ForegroundColor Green
+    } catch {
+        Write-Host "Error al descargar el script de actualización desde GitHub: $_" -ForegroundColor Red
+        Exit
+    }
 }
 
 # 4. Instalar pypdf
-Write-Host "Instalando librería de manipulación de PDFs (pypdf)..." -ForegroundColor Cyan
+Write-Host "Instalando/Verificando librería de manipulación de PDFs (pypdf)..." -ForegroundColor Cyan
 & python -m pip install pypdf
 
 # 5. Crear accesos directos en la carpeta NPM del usuario
