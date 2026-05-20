@@ -610,6 +610,90 @@ def archivos_organizar_carpeta():
     presionar_enter()
 
 # =====================================================================
+# SECCIÓN 4: EXPLORADOR DE CARPETAS
+# =====================================================================
+def explorar_carpeta():
+    print_header("EXPLORADOR INTERACTIVO DE CARPETAS")
+    print("Esta herramienta te permite navegar por directorios de tu PC")
+    print("para ver su estructura y qué archivos contienen sin salir de la consola.")
+    
+    ruta = input("\nRuta inicial (deja vacío para la carpeta actual): ").strip().strip('"')
+    if not ruta:
+        ruta = os.getcwd()
+        
+    while True:
+        ruta = os.path.abspath(ruta)
+        if not os.path.exists(ruta) or not os.path.isdir(ruta):
+            print(f"{C_RED}La ruta '{ruta}' no es una carpeta válida.{C_END}")
+            presionar_enter()
+            return
+            
+        print_header(f"Explorando: {ruta}")
+        
+        try:
+            items = os.listdir(ruta)
+        except Exception as e:
+            print(f"{C_RED}Error al acceder a la carpeta: {e}{C_END}")
+            presionar_enter()
+            return
+            
+        directorios = []
+        archivos = []
+        for item in items:
+            # Evitar carpetas del sistema ocultas
+            if item.startswith('.') or item.startswith('$'):
+                continue
+            full_path = os.path.join(ruta, item)
+            try:
+                if os.path.isdir(full_path):
+                    directorios.append(item)
+                else:
+                    archivos.append(item)
+            except Exception:
+                pass
+                
+        directorios.sort(key=lambda x: x.lower())
+        archivos.sort(key=lambda x: x.lower())
+        
+        print(f"{C_BOLD}Navegación: Ingresa un número de carpeta, escribe '..' para subir, o 'salir':{C_END}\n")
+        
+        idx = 1
+        mapeo_carpetas = {}
+        
+        print(f" {C_YELLOW}[..]{C_END} (Subir de nivel)")
+        
+        if directorios:
+            print(f"\n{C_CYAN}--- Carpetas ({len(directorios)}) ---{C_END}")
+            for d in directorios:
+                print(f"  {C_GREEN}{idx}.{C_END} [CARPETA] {d}")
+                mapeo_carpetas[idx] = d
+                idx += 1
+                
+        if archivos:
+            print(f"\n{C_CYAN}--- Archivos ({len(archivos)}) ---{C_END}")
+            for file in archivos:
+                try:
+                    size = os.path.getsize(os.path.join(ruta, file)) / 1024
+                    size_str = f"({size:.1f} KB)"
+                except Exception:
+                    size_str = ""
+                print(f"   - {file} {C_YELLOW}{size_str}{C_END}")
+                
+        print("\n" + "="*60)
+        accion = input(f"\nAcción (Número / .. / salir): ").strip()
+        
+        if accion.lower() == 'salir':
+            break
+        elif accion == '..':
+            ruta = os.path.dirname(ruta)
+        elif accion.isdigit() and int(accion) in mapeo_carpetas:
+            ruta = os.path.join(ruta, mapeo_carpetas[int(accion)])
+        else:
+            print(f"{C_RED}Opción no válida. Ingresa el número de una carpeta, '..' o 'salir'.{C_END}")
+            import time
+            time.sleep(1)
+
+# =====================================================================
 # MENÚ PRINCIPAL
 # =====================================================================
 def main():
@@ -625,10 +709,11 @@ def main():
         print(f" {C_GREEN}1.{C_END} Gestión de Archivos PDF (Unificar, Separar, Comprimir, OCR)")
         print(f" {C_GREEN}2.{C_END} Conversor de Formatos (Imágenes, Excel, CSV, etc.)")
         print(f" {C_GREEN}3.{C_END} Organización de Oficina (Renombrado, Limpiar carpetas)")
-        print(f" {C_GREEN}4.{C_END} Buscar actualizaciones del programa")
-        print(f" {C_GREEN}5.{C_END} Salir")
+        print(f" {C_GREEN}4.{C_END} Explorador interactivo de Carpetas")
+        print(f" {C_GREEN}5.{C_END} Buscar actualizaciones del programa")
+        print(f" {C_GREEN}6.{C_END} Salir")
         
-        opcion = input(f"\nOpción (1-5): ").strip()
+        opcion = input(f"\nOpción (1-6): ").strip()
         
         if opcion == "1":
             menu_pdf()
@@ -637,13 +722,15 @@ def main():
         elif opcion == "3":
             menu_organizacion()
         elif opcion == "4":
+            explorar_carpeta()
+        elif opcion == "5":
             comprobar_actualizaciones(silencioso=False)
             presionar_enter()
-        elif opcion == "5":
+        elif opcion == "6":
             print(f"\n{C_CYAN}¡Gracias por usar Toolfast! Hasta luego.{C_END}")
             break
         else:
-            print(f"{C_RED}Opción no válida. Ingresa un número entre 1 y 5.{C_END}")
+            print(f"{C_RED}Opción no válida. Ingresa un número entre 1 y 6.{C_END}")
             presionar_enter()
 
 if __name__ == "__main__":
