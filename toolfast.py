@@ -572,51 +572,123 @@ def archivos_renombrar_masivo():
 
 def archivos_organizar_carpeta():
     print_header("ORGANIZADOR AUTOMÁTICO DE CARPETAS")
-    print("Esta herramienta clasificará de forma automática tus archivos en carpetas ordenadas")
-    print("según sus tipos (ej: PDFs, Hojas de cálculo, Imágenes, Comprimidos).\n")
+    print("Navega por tus directorios para seleccionar cuál deseas organizar.")
     
-    carpeta = input("Ruta de la carpeta a organizar (ej: tu carpeta de Descargas): ").strip().strip('"')
-    if not os.path.exists(carpeta):
-        print(f"{C_RED}La carpeta no existe.{C_END}")
-        presionar_enter()
-        return
+    ruta = input("\nRuta inicial (deja vacío para la carpeta actual): ").strip().strip('"')
+    if not ruta:
+        ruta = os.getcwd()
         
+    while True:
+        ruta = os.path.abspath(ruta)
+        if not os.path.exists(ruta) or not os.path.isdir(ruta):
+            print(f"{C_RED}La ruta '{ruta}' no es una carpeta válida.{C_END}")
+            presionar_enter()
+            return
+            
+        print_header(f"Organizador - Carpeta Actual: {ruta}")
+        
+        try:
+            items = os.listdir(ruta)
+        except Exception as e:
+            print(f"{C_RED}Error al acceder a la carpeta: {e}{C_END}")
+            presionar_enter()
+            return
+            
+        directorios = []
+        archivos = []
+        for item in items:
+            if item.startswith('.') or item.startswith('$'):
+                continue
+            full_path = os.path.join(ruta, item)
+            try:
+                if os.path.isdir(full_path):
+                    directorios.append(item)
+                else:
+                    archivos.append(item)
+            except Exception:
+                pass
+                
+        directorios.sort(key=lambda x: x.lower())
+        archivos.sort(key=lambda x: x.lower())
+        
+        print(f"{C_BOLD}Opciones de acción:{C_END}")
+        print(f"  {C_GREEN}[ O ]{C_END} ---> {C_BOLD}ORGANIZAR ARCHIVOS DE ESTA CARPETA{C_END}")
+        print(f"  {C_YELLOW}[ .. ]{C_END} ---> Subir de nivel")
+        print(f"  {C_RED}[ salir ]{C_END} -> Cancelar y salir")
+        
+        idx = 1
+        mapeo_carpetas = {}
+        
+        if directorios:
+            print(f"\n{C_CYAN}--- Subcarpetas disponibles ({len(directorios)}) ---{C_END}")
+            print("Ingresa el número para ingresar a la subcarpeta:")
+            for d in directorios:
+                print(f"  {C_GREEN}{idx}.{C_END} [CARPETA] {d}")
+                mapeo_carpetas[idx] = d
+                idx += 1
+                
+        if archivos:
+            print(f"\n{C_CYAN}--- Archivos sueltos a clasificar ({len(archivos)}) ---{C_END}")
+            for file in archivos:
+                try:
+                    size = os.path.getsize(os.path.join(ruta, file)) / 1024
+                    size_str = f"({size:.1f} KB)"
+                except Exception:
+                    size_str = ""
+                print(f"   - {file} {C_YELLOW}{size_str}{C_END}")
+                
+        print("\n" + "="*60)
+        accion = input(f"\nAcción (Número / O / .. / salir): ").strip()
+        
+        if accion.lower() == 'salir':
+            break
+        elif accion == '..':
+            ruta = os.path.dirname(ruta)
+        elif accion.lower() == 'o':
+            ejecutar_limpieza_carpeta(ruta, archivos)
+            break
+        elif accion.isdigit() and int(accion) in mapeo_carpetas:
+            ruta = os.path.join(ruta, mapeo_carpetas[int(accion)])
+        else:
+            print(f"{C_RED}Opción no válida.{C_END}")
+            import time
+            time.sleep(1)
+
+def ejecutar_limpieza_carpeta(carpeta, archivos):
     # Mapeo de Categorías
     MAPEO = {
         "PDFs": [".pdf"],
         "Imagenes": [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tiff", ".svg", ".heic"],
         "Planillas_Excel": [".csv", ".xlsx", ".xls", ".ods"],
-        "Documentos": [".txt", ".docx", ".doc", ".odt", ".rtf", ".pdf"],
+        "Documentos": [".txt", ".docx", ".doc", ".odt", ".rtf"],
         "Comprimidos": [".zip", ".rar", ".7z", ".tar", ".gz", ".cab"]
     }
     
-    archivos = [f for f in glob(os.path.join(carpeta, "*")) if os.path.isfile(f)]
     # Excluir el propio script si se ejecuta desde allí
-    archivos = [a for a in archivos if os.path.abspath(a) != os.path.abspath(__file__)]
+    archivos = [a for a in archivos if os.path.abspath(os.path.join(carpeta, a)) != os.path.abspath(__file__)]
     
     if not archivos:
-        print(f"{C_YELLOW}La carpeta está limpia o no contiene archivos sueltos.{C_END}")
+        print(f"\n{C_YELLOW}La carpeta está limpia o no contiene archivos sueltos para organizar.{C_END}")
         presionar_enter()
         return
         
-    print(f"Se reorganizarán {len(archivos)} archivos. ¿Confirmas la acción? (S/N): ")
-    conf = input().strip().upper()
-    if conf not in ("S", "SI"):
-        print(f"{C_YELLOW}Cancelado.{C_END}")
+    print(f"\nSe reorganizarán {len(archivos)} archivos en la carpeta: {carpeta}")
+    conf = input("¿Confirmas la acción? (S/N, por defecto S): ").strip().upper()
+    if conf not in ("S", "SI", ""):
+        print(f"{C_YELLOW}Operación cancelada.{C_END}")
         presionar_enter()
         return
         
+    print(f"{C_YELLOW}Organizando archivos...{C_END}")
     reubicados = 0
-    for a in archivos:
-        ext = os.path.splitext(a)[1].lower()
+    for file_name in archivos:
+        full_path = os.path.join(carpeta, file_name)
+        ext = os.path.splitext(file_name)[1].lower()
         categoria = "Otros"
         
         # Buscar categoría
         for cat, extensiones in MAPEO.items():
             if ext in extensiones:
-                # Caso especial para evitar que PDFs vayan a Documentos si está la categoría PDFs arriba
-                if ext == ".pdf" and cat == "Documentos":
-                    continue
                 categoria = cat
                 break
                 
@@ -625,14 +697,15 @@ def archivos_organizar_carpeta():
         os.makedirs(subdir, exist_ok=True)
         
         # Mover archivo
-        dest = os.path.join(subdir, os.path.basename(a))
+        dest = os.path.join(subdir, file_name)
         try:
-            shutil.move(a, dest)
+            shutil.move(full_path, dest)
             reubicados += 1
         except Exception as e:
-            print(f"Error al mover {os.path.basename(a)}: {e}")
+            print(f"Error al mover {file_name}: {e}")
             
-    print(f"\n{C_GREEN}¡Completado!{C_END} Se han clasificado y movido {reubicados} archivos con éxito.")
+    print(f"\n{C_GREEN}¡Completado!{C_END} Se han clasificado y movido {reubicados} archivos con éxito en subcarpetas.")
+    presionar_enter()
     presionar_enter()
 
 # =====================================================================
