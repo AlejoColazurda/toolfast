@@ -43,9 +43,9 @@ if (Test-Path $sourceScript) {
     }
 }
 
-# 4. Instalar dependencias requeridas (pypdf, pillow, openpyxl)
-Write-Host "Instalando/Verificando librerias de Python (pypdf, pillow, openpyxl)..." -ForegroundColor Cyan
-& python -m pip install pypdf pillow openpyxl
+# 4. Instalar dependencias requeridas (pypdf, pillow, openpyxl, send2trash)
+Write-Host "Instalando/Verificando librerias de Python (pypdf, pillow, openpyxl, send2trash)..." -ForegroundColor Cyan
+& python -m pip install pypdf pillow openpyxl send2trash
 
 # 5. Crear accesos directos en la carpeta NPM del usuario (que ya esta en el PATH)
 $appData = [System.Environment]::GetFolderPath("ApplicationData")

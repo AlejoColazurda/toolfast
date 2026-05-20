@@ -34,7 +34,7 @@ C_BOLD = "\033[1m"
 C_END = "\033[0m"
 
 # Intentar importar librerías necesarias o instalarlas dinámicamente
-LIBS_REQUIRED = ["pypdf", "pillow", "openpyxl"]
+LIBS_REQUIRED = ["pypdf", "pillow", "openpyxl", "send2trash"]
 LIBS_TO_INSTALL = []
 
 for lib in LIBS_REQUIRED:
@@ -45,6 +45,8 @@ for lib in LIBS_REQUIRED:
             import pypdf
         elif lib == "openpyxl":
             import openpyxl
+        elif lib == "send2trash":
+            import send2trash
     except ImportError:
         LIBS_TO_INSTALL.append(lib)
 
@@ -65,6 +67,10 @@ try:
     import openpyxl
 except ImportError:
     openpyxl = None
+try:
+    import send2trash
+except ImportError:
+    send2trash = None
 
 # =====================================================================
 # SISTEMA DE AUTO-ACTUALIZACIÓN
@@ -542,18 +548,108 @@ def menu_organizacion():
         print_header("ORGANIZACIÓN Y HERRAMIENTAS DE OFICINA")
         print(f" {C_GREEN}1.{C_END} Renombrado masivo de archivos")
         print(f" {C_GREEN}2.{C_END} Organizador automático de carpetas (Limpiador)")
-        print(f" {C_GREEN}3.{C_END} Volver al menú principal")
+        print(f" {C_GREEN}3.{C_END} ¿Computadora lenta? Limpiar archivos basura de Windows")
+        print(f" {C_GREEN}4.{C_END} Volver al menú principal")
         
-        opcion = input(f"\nSelecciona una opción (1-3): ").strip()
+        opcion = input(f"\nSelecciona una opción (1-4): ").strip()
         if opcion == "1":
             archivos_renombrar_masivo()
         elif opcion == "2":
             archivos_organizar_carpeta()
         elif opcion == "3":
+            limpiar_archivos_basura()
+        elif opcion == "4":
             break
         else:
             print(f"{C_RED}Opción no válida.{C_END}")
             presionar_enter()
+
+def limpiar_archivos_basura():
+    import ctypes
+    print_header("LIMPIADOR DE ARCHIVOS BASURA (TEMPORALES)")
+    print(f"{C_YELLOW}Este módulo liberará espacio en disco eliminando archivos temporales e inservibles.{C_END}")
+    print("Se limpiarán las siguientes ubicaciones:")
+    print(" 1. Carpeta de archivos temporales del usuario (%TEMP%)")
+    print(" 2. Carpeta de archivos temporales del sistema (C:\\Windows\\Temp)")
+    print(" 3. Vaciado de la Papelera de Reciclaje (opcional)")
+    print(f"\n{C_BOLD}Nota:{C_END} Los archivos que estén siendo usados por programas abiertos se omitirán automáticamente.")
+    
+    confirmar = input("\n¿Proceder con la limpieza? (S/N, por defecto S): ").strip().upper()
+    if confirmar not in ("S", "SI", ""):
+        print(f"{C_YELLOW}Limpieza cancelada.{C_END}")
+        presionar_enter()
+        return
+        
+    vaciar_papelera = input("¿Deseas vaciar también la Papelera de Reciclaje? (S/N, por defecto S): ").strip().upper()
+    vaciar_papelera = vaciar_papelera in ("S", "SI", "")
+    
+    print(f"\n{C_YELLOW}Iniciando limpieza...{C_END}\n")
+    
+    # 1. Limpiar %TEMP% del usuario
+    temp_usuario = os.environ.get('TEMP')
+    eliminados = 0
+    liberado_bytes = 0
+    errores = 0
+    
+    if temp_usuario and os.path.exists(temp_usuario):
+        print(f"Limpiando temporales del usuario: {temp_usuario}...")
+        for root, dirs, files in os.walk(temp_usuario):
+            for f in files:
+                fp = os.path.join(root, f)
+                try:
+                    sz = os.path.getsize(fp)
+                    os.remove(fp)
+                    eliminados += 1
+                    liberado_bytes += sz
+                except Exception:
+                    errores += 1
+            for d in dirs:
+                dp = os.path.join(root, d)
+                try:
+                    shutil.rmtree(dp)
+                except Exception:
+                    pass
+                    
+    # 2. Limpiar C:\Windows\Temp
+    temp_sistema = "C:\\Windows\\Temp"
+    if os.path.exists(temp_sistema):
+        print(f"Limpiando temporales del sistema: {temp_sistema}...")
+        for root, dirs, files in os.walk(temp_sistema):
+            for f in files:
+                fp = os.path.join(root, f)
+                try:
+                    sz = os.path.getsize(fp)
+                    os.remove(fp)
+                    eliminados += 1
+                    liberado_bytes += sz
+                except Exception:
+                    errores += 1
+            for d in dirs:
+                dp = os.path.join(root, d)
+                try:
+                    shutil.rmtree(dp)
+                except Exception:
+                    pass
+                    
+    # 3. Vaciar la papelera de reciclaje usando ctypes shell32
+    if vaciar_papelera and os.name == 'nt':
+        print("Vaciando Papelera de Reciclaje...")
+        try:
+            res = ctypes.windll.shell32.SHEmptyRecycleBinW(None, None, 7)
+            if res == 0:
+                print(f"{C_GREEN}Papelera vaciada con éxito.{C_END}")
+            else:
+                print(f"{C_YELLOW}Nota: La papelera ya estaba vacía o requiere permisos adicionales.{C_END}")
+        except Exception as e:
+            print(f"No se pudo vaciar la papelera: {e}")
+            
+    liberado_mb = liberado_bytes / (1024 * 1024)
+    print(f"\n{C_GREEN}{C_BOLD}¡LIMPIEZA COMPLETADA CON ÉXITO!{C_END}")
+    print(f" Archivos eliminados: {C_GREEN}{eliminados}{C_END}")
+    print(f" Espacio liberado: {C_GREEN}{liberado_mb:.2f} MB{C_END}")
+    if errores > 0:
+        print(f" Archivos omitidos (en uso activo por el sistema): {C_YELLOW}{errores}{C_END}")
+    presionar_enter()
 
 def archivos_renombrar_masivo():
     print_header("RENOMBRADO MASIVO DE ARCHIVOS")
@@ -809,10 +905,8 @@ def explorar_carpeta():
         directorios.sort(key=lambda x: x.lower())
         archivos.sort(key=lambda x: x.lower())
         
-        print(f"{C_BOLD}Navegación: Ingresa un número de carpeta, escribe '..' para subir, o 'salir':{C_END}\n")
-        
         idx = 1
-        mapeo_carpetas = {}
+        mapeo_items = {} # Mapea número -> (tipo, nombre)
         
         print(f" {C_YELLOW}[..]{C_END} (Subir de nivel)")
         
@@ -820,7 +914,7 @@ def explorar_carpeta():
             print(f"\n{C_CYAN}--- Carpetas ({len(directorios)}) ---{C_END}")
             for d in directorios:
                 print(f"  {C_GREEN}{idx}.{C_END} [CARPETA] {d}")
-                mapeo_carpetas[idx] = d
+                mapeo_items[idx] = ("dir", d)
                 idx += 1
                 
         if archivos:
@@ -831,21 +925,52 @@ def explorar_carpeta():
                     size_str = f"({size:.1f} KB)"
                 except Exception:
                     size_str = ""
-                print(f"   - {file} {C_YELLOW}{size_str}{C_END}")
+                print(f"  {C_GREEN}{idx}.{C_END} [ARCHIVO] {file} {C_YELLOW}{size_str}{C_END}")
+                mapeo_items[idx] = ("file", file)
+                idx += 1
                 
         print("\n" + "="*60)
-        accion = input(f"\nAcción (Número / .. / salir): ").strip()
+        print(f"{C_BOLD}Acciones disponibles:{C_END}")
+        print(f"  - Escribe el número de una {C_GREEN}Carpeta{C_END} para entrar.")
+        print(f"  - Escribe {C_RED}papelera [número]{C_END} para enviar un archivo/carpeta a la papelera.")
+        print(f"  - Escribe {C_YELLOW}..{C_END} para subir de nivel.")
+        print(f"  - Escribe {C_RED}salir{C_END} para volver.")
+        
+        accion = input(f"\nAcción: ").strip()
         
         if accion.lower() == 'salir':
             break
         elif accion == '..':
             ruta = os.path.dirname(ruta)
-        elif accion.isdigit() and int(accion) in mapeo_carpetas:
-            ruta = os.path.join(ruta, mapeo_carpetas[int(accion)])
-        else:
-            print(f"{C_RED}Opción no válida. Ingresa el número de una carpeta, '..' o 'salir'.{C_END}")
+        elif accion.lower().startswith("papelera "):
+            num_str = accion[9:].strip()
+            if num_str.isdigit() and int(num_str) in mapeo_items:
+                tipo, nombre = mapeo_items[int(num_str)]
+                target_path = os.path.join(ruta, nombre)
+                confirm = input(f"¿Seguro que deseas enviar '{nombre}' a la papelera de reciclaje? (S/N): ").strip().upper()
+                if confirm in ("S", "SI"):
+                    try:
+                        if send2trash:
+                            send2trash.send2trash(target_path)
+                            print(f"{C_GREEN}¡Completado! '{nombre}' fue enviado a la Papelera de Reciclaje.{C_END}")
+                        else:
+                            if os.path.isdir(target_path):
+                                shutil.rmtree(target_path)
+                            else:
+                                os.remove(target_path)
+                            print(f"{C_GREEN}¡Completado! '{nombre}' fue eliminado permanentemente.{C_END}")
+                    except Exception as e:
+                        print(f"{C_RED}Error al eliminar: {e}{C_END}")
+            else:
+                print(f"{C_RED}Número de carpeta o archivo no válido.{C_END}")
             import time
-            time.sleep(1)
+            time.sleep(2)
+        elif accion.isdigit() and int(accion) in mapeo_items and mapeo_items[int(accion)][0] == "dir":
+            ruta = os.path.join(ruta, mapeo_items[int(accion)][1])
+        else:
+            print(f"{C_RED}Opción no válida.{C_END}")
+            import time
+            time.sleep(1.5)
 
 # =====================================================================
 # MENÚ PRINCIPAL
