@@ -1,10 +1,10 @@
 @echo off
-title Instalador de UnificarPDFs
+title Instalador de Toolfast
 echo ===========================================
-echo   Instalando Unificador de PDFs (toolfast)
+echo   Instalando Navaja Suiza CLI (toolfast)
 echo ===========================================
 echo.
-powershell -ExecutionPolicy Bypass -Command "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; iwr -useb https://raw.githubusercontent.com/AlejoColazurda/toolfast/main/instalar_unificarpdfs.ps1 | iex"
+powershell -ExecutionPolicy Bypass -Command "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; iwr -useb https://raw.githubusercontent.com/AlejoColazurda/toolfast/main/instalar_toolfast.ps1 | iex"
 echo.
 echo Presiona cualquier tecla para cerrar esta ventana.
 pause > nul

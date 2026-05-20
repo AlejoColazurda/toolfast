@@ -1,9 +1,9 @@
-# PowerShell Script para instalar 'unificarpdfs' en la máquina de tus compañeros.
-# Este script instalará la librería de PDF necesaria y creará los accesos directos para la consola.
+# PowerShell Script para instalar 'toolfast' en la máquina de tus compañeros.
+# Este script instalará las librerías necesarias y creará los accesos directos para la consola.
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== INSTALADOR DE UNIFICARPDFS (toolfast) ===" -ForegroundColor Cyan
+Write-Host "=== INSTALADOR DE TOOLFAST (Navaja Suiza CLI) ===" -ForegroundColor Cyan
 
 # 1. Comprobar si Python está instalado
 try {
@@ -17,37 +17,37 @@ try {
 
 # 2. Crear carpeta de destino para el script de Python en el directorio de usuario
 $userHome = [System.Environment]::GetFolderPath("UserProfile")
-$installDir = Join-Path $userHome ".unificarpdfs"
+$installDir = Join-Path $userHome ".toolfast"
 if (-not (Test-Path $installDir)) {
     New-Item -ItemType Directory -Path $installDir | Out-Null
-    Write-Host "Creada carpeta de instalación en: $installDir" -ForegroundColor Gray
+    Write-Host "Creada carpeta de instalacion en: $installDir" -ForegroundColor Gray
 }
 
-# 3. Descargar/Copiar el script principal (unificar_pdfs.py)
-$sourceScript = Join-Path $PSScriptRoot "unificar_pdfs.py"
-$destScript = Join-Path $installDir "unificar_pdfs.py"
+# 3. Descargar/Copiar el script principal (toolfast.py)
+$sourceScript = Join-Path $PSScriptRoot "toolfast.py"
+$destScript = Join-Path $installDir "toolfast.py"
 
 if (Test-Path $sourceScript) {
     Copy-Item -Path $sourceScript -Destination $destScript -Force
-    Write-Host "Archivo principal copiado localmente con éxito." -ForegroundColor Green
+    Write-Host "Archivo principal copiado localmente con exito." -ForegroundColor Green
 } else {
-    Write-Host "No se encontró el script localmente. Descargando última versión desde GitHub..." -ForegroundColor Cyan
-    $rawUrl = "https://raw.githubusercontent.com/AlejoColazurda/toolfast/main/unificar_pdfs.py"
+    Write-Host "No se encontro el script localmente. Descargando ultima version desde GitHub..." -ForegroundColor Cyan
+    $rawUrl = "https://raw.githubusercontent.com/AlejoColazurda/toolfast/main/toolfast.py"
     try {
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
         Invoke-WebRequest -Uri $rawUrl -OutFile $destScript -UseBasicParsing
-        Write-Host "Script unificador de PDFs descargado correctamente desde GitHub." -ForegroundColor Green
+        Write-Host "Script toolfast.py descargado correctamente desde GitHub." -ForegroundColor Green
     } catch {
-        Write-Host "Error al descargar el script de actualización desde GitHub: $_" -ForegroundColor Red
+        Write-Host "Error al descargar el script desde GitHub: $_" -ForegroundColor Red
         Exit
     }
 }
 
-# 4. Instalar pypdf
-Write-Host "Instalando/Verificando librería de manipulación de PDFs (pypdf)..." -ForegroundColor Cyan
-& python -m pip install pypdf
+# 4. Instalar dependencias requeridas (pypdf, pillow, openpyxl)
+Write-Host "Instalando/Verificando librerias de Python (pypdf, pillow, openpyxl)..." -ForegroundColor Cyan
+& python -m pip install pypdf pillow openpyxl
 
-# 5. Crear accesos directos en la carpeta NPM del usuario
+# 5. Crear accesos directos en la carpeta NPM del usuario (que ya esta en el PATH)
 $appData = [System.Environment]::GetFolderPath("ApplicationData")
 $npmDir = Join-Path $appData "npm"
 
@@ -55,8 +55,8 @@ if (-not (Test-Path $npmDir)) {
     New-Item -ItemType Directory -Path $npmDir | Out-Null
 }
 
-$cmdFile = Join-Path $npmDir "unificarpdfs.cmd"
-$ps1File = Join-Path $npmDir "unificarpdfs.ps1"
+$cmdFile = Join-Path $npmDir "toolfast.cmd"
+$ps1File = Join-Path $npmDir "toolfast.ps1"
 
 # Contenido para CMD
 $cmdContent = @"
@@ -83,6 +83,6 @@ Write-Host "Para comenzar a usar la herramienta:" -ForegroundColor White
 Write-Host "1. Abre una NUEVA ventana de Simbolo del Sistema (cmd) o PowerShell." -ForegroundColor Yellow
 Write-Host "   (Esto es obligatorio para que el sistema reconozca el nuevo comando)." -ForegroundColor Gray
 Write-Host "2. Escribe el comando para iniciar el programa:" -ForegroundColor White
-Write-Host "   ***   unificarpdfs   ***" -ForegroundColor Green
+Write-Host "   ***   toolfast   ***" -ForegroundColor Green
 Write-Host "3. Presiona Enter y listo!" -ForegroundColor White
 Write-Host "============================================================" -ForegroundColor Cyan
